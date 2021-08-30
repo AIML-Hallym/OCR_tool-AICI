@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="resources"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/fontbox-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/pdfbox-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/pdfbox-debugger-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/pdfbox-tools-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/preflight-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/xmpbox-2.0.24.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/pdfBox/levigo-jbig2-imageio-2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/Desktop/libs/opencv-453.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/Users/User/Desktop/libs/x64"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
