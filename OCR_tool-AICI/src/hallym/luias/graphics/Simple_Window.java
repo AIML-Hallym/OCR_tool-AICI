@@ -340,7 +340,7 @@ public class Simple_Window extends Canvas {
 									jImages.getNextPage();
 								}
 								
-								utils.postProcessing_dir(dir);
+								utils.postProcessing_dir2(dir);
 								isDone[i] = 1;
 								
 							}catch(Exception e) {

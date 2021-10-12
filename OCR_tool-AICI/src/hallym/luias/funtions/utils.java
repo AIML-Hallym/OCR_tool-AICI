@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -206,7 +207,7 @@ public class utils {
 
 	public static boolean isStartSamePos(TextLine t1, TextLine t2) {
 		double gap = Math.abs(t1.getsX() - t2.getsX());
-		return (gap / 100d) <= 0.4d ? true : false;
+		return (gap / 100d) <= 0.2d ? true : false;
 	}
 
 	public static void ConcatArray(JSONArray arr1, JSONArray arr2) {
@@ -341,6 +342,52 @@ public class utils {
 			JOptionPane.showMessageDialog(null, "문제가 생겼습니다. 개발자에게 문의하세요");
 			e.printStackTrace();
 			
+		}
+		
+	}
+	
+	public static void postProcessing_dir2(File dir) {
+		
+		try {
+			
+			File[] files = dir.listFiles();
+			File result_dir = new File(dir.getPath()+"/results");
+			
+			if(!result_dir.exists())
+				result_dir.mkdir();
+			
+			for(int i = 0; i < files.length; i++) {
+				if(files[i].isFile() && !(files[i].getName()).contains("json")) {
+					Network.ClovaOCR(files[i]);
+				}
+			}
+			
+			ArrayList <ArrayList <TextLine>> doc = readAllJSON2(dir);
+			ArrayList <TextLine> allLines = allSentences(doc);
+			ArrayList <String> conResult = checkSentence(allLines);
+			
+			saveAllTextAndJson(conResult, dir.getName(), result_dir);
+			
+			files = dir.listFiles();
+			for(int i = 0 ; i < files.length; i++) {
+				if(files[i].isFile() && !(files[i].getName()).contains("png")) {
+					String[] name = files[i].getName().split("_");
+					
+					int page_num;
+					if(files[i].getName().contains("주석")) {
+						page_num = Integer.parseInt(name[name.length-2].replace("page", ""));
+					}else {
+						String tn = name[name.length-1].replace("page", "");
+						page_num = Integer.parseInt(tn.replace(".json", ""));
+					}
+					
+					postProcessing2(files[i], page_num);
+				}
+			}
+			
+		}catch(Exception e) {
+			JOptionPane.showMessageDialog(null, "문제가 생겼습니다. 개발자에게 문의하세요");
+			e.printStackTrace();
 		}
 		
 	}
@@ -516,6 +563,50 @@ public class utils {
 		}
 
 	}
+	
+	public static void postProcessing2(File json, int page_num) {
+		
+		try {
+			
+			ArrayList <TextLine> lines = readJSON(json);
+			
+			JSONObject nObj = new JSONObject();
+			nObj.put("page_num", page_num);
+			
+			JSONArray textArr = new JSONArray();
+			for(int i = 0; i < lines.size(); i++) {
+				JSONObject text = new JSONObject();
+				text.put("text", lines.get(i).getText());
+				textArr.add(text);
+			}
+			
+			nObj.put("textLines", textArr);
+			
+			File f = new File(json.getParent() + "/results");
+			if(!f.exists())
+				f.mkdir();
+			
+			File ff = new File(f.getPath() + "/" + json.getName());
+			PrintWriter pw = new PrintWriter(ff);
+			pw.println(nObj.toJSONString());
+			pw.flush();
+			pw.close();
+			
+			File fff = new File(f.getPath()+"/" + json.getName().substring(0, json.getName().indexOf("."))+".txt");
+			pw = new PrintWriter(fff);
+			for(int i = 0; i < lines.size(); i++) {
+				pw.println(lines.get(i).getText());
+			}
+			pw.flush();
+			pw.close();
+			
+			
+		}catch(Exception e) {
+			JOptionPane.showMessageDialog(null, "문제가 생겼습니다. 개발자에게 문의하세요");
+			e.printStackTrace();
+		}
+		
+	}
 
 	private static String line_sperator(JSONArray texts) {
 		JSONObject prev = null;
@@ -609,6 +700,158 @@ public class utils {
 		return gap <= 0.4 ? true : false;
 	}
 
+	private static boolean isSameLine(TextLine t1, TextLine t2) {
+		double gap = Math.abs(t1.getsY() - t2.getsY());
+		gap /= 100;
+		
+		return gap <= 0.4 ? true : false;
+	}
+	
+	private static ArrayList <TextLine> allSentences(ArrayList <ArrayList <TextLine>> pages){
+		ArrayList <TextLine> lines = new ArrayList <TextLine> ();
+		
+		for(int i = 0; i < pages.size(); i++) {
+			for(TextLine t : pages.get(i)) {
+				lines.add(t);
+			}
+		}
+		
+		return lines;
+	}
+	
+	public static ArrayList <TextLine> readJSON(File json){
+		try {
+			ArrayList <TextLine> lines = new ArrayList<>();
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(json)));
+			
+			StringBuffer sb = new StringBuffer();
+			String s;
+			
+			while((s = br.readLine()) != null) sb.append(s);
+			
+			JSONParser parser = new JSONParser();
+			JSONObject obj = (JSONObject) parser.parse(sb.toString());
+			JSONArray images = (JSONArray)obj.get("images");
+			
+			JSONArray fields = (JSONArray)((JSONObject)images.get(0)).get("fields");
+			JSONArray parsed = SentenceParser(fields);
+			
+			for(int l = 0; l < parsed.size(); l++) lines.add(new TextLine((JSONObject)parsed.get(l)));
+			
+			lines = attach_sameLine(remove_error(lines));
+			
+			return lines;
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public static ArrayList <ArrayList <TextLine>> readAllJSON2(File dir){
+		ArrayList <ArrayList <TextLine>> pages = new ArrayList <> ();
+		
+		try {
+			
+			File[] files = dir.listFiles();
+			ArrayList <File> jsons = getJSONFiles(files);
+			
+			for(int i = 0; i < jsons.size(); i++) {
+				pages.add(readJSON(jsons.get(i)));
+			}
+			
+			return pages;
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public static ArrayList <File> getJSONFiles(File[] files){
+		
+		ArrayList <File> json_files = new ArrayList <>();
+		
+		for(int i = 0; i < files.length; i++) {
+			if(files[i].isFile() && !(files[i].getName()).contains("png")) {
+				if (files[i].getName().contains("_주석"))
+					continue;
+				
+				json_files.add(files[i]);
+			}
+		}
+		
+		json_files.sort(new Comparator <File>() {
+			@Override
+			public int compare(File o1, File o2) {
+				int n1 = extractFileNum(o1.getName()), n2 = extractFileNum(o2.getName());
+				return n1 - n2;
+			}
+			
+			private int extractFileNum(String name) {
+				String[] name_splited = name.split("_");
+				String page = name_splited[3];
+				
+				page = page.replace(".json", "");
+				page = page.replace("page", "");
+				
+				return Integer.parseInt(page);
+			}
+		});
+		
+		return json_files;
+		
+	}
+	
+	public static ArrayList <TextLine> remove_error(ArrayList <TextLine> lines){
+		TextLine prev = null;
+		
+		for(int i = 0; i < lines.size(); i++) {
+			TextLine tLine = lines.get(i);
+			
+			if(prev == null) {
+				prev = tLine;
+				continue;
+			}
+			
+			if((prev.getsX() == tLine.getsX()) && (prev.getsY() == tLine.getsY())) {
+				if(prev.getText().length() > tLine.getText().length()) {
+					lines.remove(tLine);
+				}else {
+					lines.remove(prev);
+				}
+			}
+			
+			prev = tLine;
+		}
+		
+		return lines;
+	}
+	
+	public static ArrayList <TextLine> attach_sameLine(ArrayList <TextLine> line){
+		TextLine prev = null;
+		
+		for(int i = 0; i < line.size(); i++) {
+			TextLine tLine = line.get(i);
+			
+			if(prev == null) {
+				prev = tLine;
+				continue;
+			}
+			
+			if(isSameLine(prev, tLine)){
+				prev.appendText(tLine);
+				line.remove(tLine);
+			}
+			
+			prev = tLine;
+		}
+		
+		return line;
+	}
+	
 	public static void loadResources() {
 
 		try {
